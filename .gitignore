@@ -1,2 +1,4 @@
 YOLO_venv/
+venv/
 .venv/
+.mydata/
