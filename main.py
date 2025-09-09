@@ -25,11 +25,11 @@ from ultralytics import YOLO
 # ============================= #
 
 # Constants
-DATASET_PATH: Path = Path("./datasets/mi_dataset")
-VIDEO_INPUT: Path = Path("./inputs/input_video.mp4")
+DATASET_PATH: Path = Path("./dataset")
+VIDEO_INPUT: Path = Path("./inputs/cinta_frutas_trim.mp4")
 VIDEO_OUTPUT: Path = Path("./outputs/output_video.mp4")
 RESULTS_TXT: Path = Path("./outputs/conteo_resultados.txt")
-ITEM_NAME: str = "mi_item"
+ITEM_NAME: str = "manzanas"
 
 # LOGGER CONFIGURATION
 logging.basicConfig(
@@ -44,27 +44,41 @@ logging.basicConfig(
 # ============================= #
 #           FUNCTIONS           #
 # ============================= #
-def train_model(epochs: int = 50, imgsz: int = 640, batch: int = 16) -> YOLO:
+def train_model(
+    epochs: int = 15, #50,
+    imgsz: int = 640,
+    batch: int = 4, #16,
+    save_path: Optional[Path] = Path("./models/yolo11_item_count.pt")
+) -> YOLO:
     """
-    Train a YOLOv11 model on the custom dataset.
+    Train a YOLOv11 model on the custom dataset and export it for easy use in Python.
 
     Args:
         epochs (int): Number of training epochs.
         imgsz (int): Input image size for training.
         batch (int): Batch size.
+        save_path (Optional[Path]): Path to save the exported model (.pt by default).
 
     Returns:
         YOLO: The trained YOLOv11 model instance.
     """
-    model = YOLO(model="yolov11s.pt", task="detect")
+    model = YOLO(model="yolov8s.pt", task="detect")
 
     model.train(
         data=str(DATASET_PATH / "data.yaml"),
         epochs=epochs,
         imgsz=imgsz,
         batch=batch,
-        name="yolo11_item_count"
+        name="yolo11_item_count",
+        augment=True,  # Enable data augmentation (flips, color jitters, etc.)
+        # val=str(DATASET_PATH / "val"),  # Validation disabled due to very few images
     )
+
+    # Export the trained model for easy usage in Python
+    if save_path:
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        model.export(format="pt", imgsz=imgsz, batch=batch, file=str(save_path))
+        logging.info(f"Trained model exported to {save_path}")
 
     return model
 
@@ -181,13 +195,13 @@ def export_metrics(
 #        MAIN (EXECUTION)       #
 # ============================= #
 if __name__ == "__main__":
-    runs_dir = Path("runs/detect/yolo11_item_count")
+    runs_dir = Path("runs/detect/yolo11_item_count/weights/best.pt")
     if not runs_dir.exists():
         logging.info("Training YOLOv11 model...")
         model = train_model()
     else:
         logging.info("Loading pretrained YOLOv11 model...")
-        model = YOLO(str(runs_dir / "weights/best.pt"))
+        model = YOLO(str(runs_dir))
 
     logging.info("Processing video...")
     total_count = process_video(model, VIDEO_INPUT, VIDEO_OUTPUT)
