@@ -1,0 +1,6 @@
+# data.yaml para YOLOv11 (detección)
+train: ./images/train
+val: ./images/train  # Validación deshabilitada por pocas imágenes
+
+nc: 1  # Número de clases
+names: ["Chumbo"]  # Nombre de la clase
